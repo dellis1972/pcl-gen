@@ -53,10 +53,10 @@ namespace PCLG
 		public List<StructClassDefinition> Structures { get; private set; }
 		public List<StructClassDefinition> Classes { get; private set; }
 
-		public void Process (Assembly assembly)
+		public void Process (Assembly assembly, string[] ignoreNames, string[] ignoreProperties, string[] ignoreMethods)
 		{
 			Type[] types = assembly.GetExportedTypes ();
-			foreach (var enums in types.Where (x => x.IsEnum && x.Namespace.StartsWith ("Microsoft.Xna.Framework"))) {
+			foreach (var enums in types.Where (x => x.IsEnum && x.Namespace.StartsWith ("Microsoft.Xna.Framework") && !ignoreNames.Contains(x.Name))) {
 
 				var def = this.Enumerations.ContainsKey(enums.Name) ? this.Enumerations[enums.Name] : null;
 				if (def == null) {
@@ -71,7 +71,7 @@ namespace PCLG
 						def.Enums.Add (i);
 				}
 			}
-			foreach (var interfacedef in types.Where (x => x.IsInterface && x.Namespace.StartsWith("Microsoft.Xna.Framework"))) {
+			foreach (var interfacedef in types.Where (x => x.IsInterface && x.Namespace.StartsWith ("Microsoft.Xna.Framework") && !ignoreNames.Contains (x.Name))) {
 				var s = new StructClassDefinition (interfacedef);
 				s.Namespace = interfacedef.Namespace;
 				s.Name = interfacedef.Name;
@@ -80,6 +80,8 @@ namespace PCLG
 				}
 				foreach (var p in interfacedef.GetProperties (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)) {
 					if (p.DeclaringType != interfacedef)
+						continue;
+					if (ignoreProperties.Contains (p.Name))
 						continue;
 					s.Properties.Add (p);
 				}
@@ -90,11 +92,13 @@ namespace PCLG
 					if (m.Name.StartsWith ("remove_")) continue;
 					if (m.DeclaringType != interfacedef)
 						continue;
+					if (ignoreMethods.Contains (m.Name))
+						continue;
 					s.Methods.Add (m);
 				}
 				this.Interfaces.Add (s);
 			}
-			foreach (var type in types.Where (x => x.IsValueType && !x.IsEnum)) {
+			foreach (var type in types.Where (x => x.IsValueType && !x.IsEnum && !ignoreNames.Contains (x.Name))) {
 				var s = new StructClassDefinition (type);
 				s.Namespace = type.Namespace;
 				s.Name = type.Name;
@@ -104,7 +108,10 @@ namespace PCLG
 				foreach (var p in type.GetProperties (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)) {
 					if (p.DeclaringType != type)
 						continue;
-					s.Properties.Add (p);
+					if (ignoreProperties.Contains (p.Name))
+						continue;
+					if (!s.Properties.Exists(x => x.Name == p.Name))
+						s.Properties.Add (p);
 				}
 				foreach (var m in type.GetMethods (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)) {
 					if (m.Name.StartsWith ("get_")) continue;
@@ -113,12 +120,14 @@ namespace PCLG
 					if (m.Name.StartsWith ("remove_")) continue;
 					if (m.DeclaringType != type)
 						continue;
+					if (ignoreMethods.Contains (m.Name))
+						continue;
 					s.Methods.Add (m);
 				}
 				this.Structures.Add (s);
 			}
-			
-			foreach (var type in types.Where (x => x.IsClass && !x.Namespace.Contains("Microsoft.Xna.Framework.Storage"))) {
+
+			foreach (var type in types.Where (x => x.IsClass && !x.Namespace.Contains ("Microsoft.Xna.Framework.Storage") && !ignoreNames.Contains (x.Name))) {
 				var s = new StructClassDefinition (type);
 				s.Namespace = type.Namespace;
 				s.Name = type.Name;
@@ -129,7 +138,10 @@ namespace PCLG
 				foreach (var p in type.GetProperties (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance)) {
 					if (p.DeclaringType != type)
 						continue;
-					s.Properties.Add (p);
+					if (ignoreProperties.Contains (p.Name))
+						continue;
+					if (!s.Properties.Exists (x => x.Name == p.Name))
+						s.Properties.Add (p);
 				}
 				foreach (var c in type.GetConstructors (BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly)) {
 					s.Constructors.Add (c);
@@ -140,6 +152,8 @@ namespace PCLG
 					if (m.Name.StartsWith ("add_")) continue;
 					if (m.Name.StartsWith ("remove_")) continue;
 					if (m.DeclaringType != type) 
+						continue;
+					if (ignoreMethods.Contains (m.Name))
 						continue;
 					s.Methods.Add (m);
 				}
@@ -246,6 +260,20 @@ namespace PCLG
 				sw.WriteLine (" {");
 				// export methods and properties
 				ExportProperties (type.Properties, sw);
+
+				var needsDefault = type.Constructors.Where (x => x.GetParameters ().Count () == 0).FirstOrDefault () == null;
+
+				if (!type.type.IsInterface && needsDefault) {
+					sw.Write ("		public ");
+					var args = type.type.GetGenericArguments ();
+					sw.Write ("{0} (", type.type.Name.Replace (string.Format ("`{0}", args.Length), ""));
+					sw.WriteLine (") {");
+					sw.WriteLine ();
+					sw.WriteLine ("			throw new NotImplementedException();");
+					sw.WriteLine ("		}");
+					sw.WriteLine ();
+				}
+
 				ExportConstructors (type.Constructors, sw);
 				ExportMethods (type.Methods, sw);
 				sw.WriteLine ("	}");
@@ -261,28 +289,24 @@ namespace PCLG
 
 		private void ExportConstructors (List<ConstructorInfo> list, StreamWriter sw)
 		{
+			bool hasDefault = false;
 			foreach (var meth in list) {
 				sw.WriteLine ();
 				if (!meth.DeclaringType.IsInterface)
 					sw.Write ("		public ");
 				if (meth.IsStatic)
 					sw.Write ("static ");
-				
-				if (!meth.IsGenericMethod) {
+				var args = meth.DeclaringType.GetGenericArguments ();
+				sw.Write ("{0} (", meth.DeclaringType.Name.Replace(string.Format("`{0}",args.Length), ""));
+				/*if (!meth.IsGenericMethod) {
 					WriteType (meth.DeclaringType, sw);
 					sw.Write (" (");
 				} else {
 					WriteType (meth.DeclaringType, sw);
 					sw.Write (" (");
-					/*var gp = meth.GetGenericArguments ();
-					foreach (var g in gp) {
-						WriteType (g, sw, true);
-						if (g != gp.Last ())
-							sw.Write (",");
-					}
-					sw.Write (">(");*/
-				}
+				}*/
 				var parameters = meth.GetParameters ();
+				hasDefault &= parameters.Count () == 0;
 				foreach (var param in parameters) {
 					if (param.IsOut) {
 						sw.Write ("out ");
@@ -449,8 +473,28 @@ namespace PCLG
 			var asmdef = new AssemblyDefinition ();
 
 			Assembly asm = Assembly.LoadFrom (args[0]);
-			asmdef.Process (asm);
-			asmdef.Export (@"C:\Users\Dean\Documents\Projects\dellis1972\infspacestudios\PCLG\PCLG\bin\Debug\code.cs");
+			List<string> ignoreNames = new List<string> ();
+			ignoreNames.Add ("MetroGameWindow");
+			ignoreNames.Add ("ViewStateChangedEventArgs");
+			ignoreNames.Add ("MetroHelper");
+			ignoreNames.Add ("XamlGame`1");
+			ignoreNames.Add ("ContentExtensions");
+			ignoreNames.Add ("GameFrameworkViewSource`1");
+
+			List<string> ignoreProperties = new List<string> ();
+			ignoreProperties.Add ("SwapChainPanel");
+			ignoreProperties.Add ("Speakers");
+			ignoreProperties.Add ("PreviousExecutionState");
+
+			List<string> ignoreMethods = new List<string> ();
+			ignoreMethods.Add ("CreateTex2DFromBitmap");
+			ignoreMethods.Add ("GetRenderTargetView");
+			ignoreMethods.Add ("GetDepthStencilView");
+			ignoreMethods.Add ("EndShowStorageDeviceSelector");
+			ignoreMethods.Add ("BeginShowStorageDeviceSelector");
+
+			asmdef.Process (asm, ignoreNames.ToArray(), ignoreProperties.ToArray(), ignoreMethods.ToArray());
+			asmdef.Export (@"C:\Users\Dean\Documents\Projects\dellis1972\pcl-gen\PCLTest\code.cs");
 
 			/*
 			foreach (var type in types.Where (x => x.IsClass && x.Namespace == "Microsoft.Xna.Framework")) {
