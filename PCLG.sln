@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCLG", "PCLG\PCLG.csproj", "{1694306C-C19D-4A1E-B180-1362EA74BC5C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCLTest", "PCLTest\PCLTest.csproj", "{F5A27ED3-AA23-4A80-8861-CE99715D87CE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1694306C-C19D-4A1E-B180-1362EA74BC5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1694306C-C19D-4A1E-B180-1362EA74BC5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1694306C-C19D-4A1E-B180-1362EA74BC5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1694306C-C19D-4A1E-B180-1362EA74BC5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5A27ED3-AA23-4A80-8861-CE99715D87CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5A27ED3-AA23-4A80-8861-CE99715D87CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5A27ED3-AA23-4A80-8861-CE99715D87CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5A27ED3-AA23-4A80-8861-CE99715D87CE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
