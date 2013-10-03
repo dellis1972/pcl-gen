@@ -436,16 +436,23 @@ namespace PCLG
 					
 					sw.Write (" {0} ", param.Name);
 					if (param.HasDefaultValue) {
-						sw.Write (" = {0}", param.DefaultValue == null ? "null" : param.DefaultValue.ToString ());
+						if (!param.ParameterType.FullName.StartsWith("System."))
+							sw.Write (" = {0}", param.DefaultValue == null ? "null" : string.Format("{0}.{1}", param.ParameterType.Name,param.DefaultValue.ToString ()));
+						else
+							sw.Write (" = {0}", param.DefaultValue == null ? "null" : param.DefaultValue.ToString ());
 					}
 					if (param != parameters.Last ())
 						sw.Write (",");
 				}
-				sw.WriteLine (") {");
-				sw.WriteLine ();
-				sw.WriteLine ("			throw new NotImplementedException();");
-				sw.WriteLine ("		}");
-				sw.WriteLine ();
+				if (meth.DeclaringType.IsInterface) {
+					sw.WriteLine (");");
+				} else {
+					sw.WriteLine (") {");
+					sw.WriteLine ();
+					sw.WriteLine ("			throw new NotImplementedException();");
+					sw.WriteLine ("		}");
+					sw.WriteLine ();
+				}
 			}
 		}
 
@@ -456,10 +463,24 @@ namespace PCLG
 				if (writePublic)
 					sw.Write ("		public ");
 				else sw.Write ("		");
+
+				var isStatic = (prop.CanRead && prop.GetMethod.IsStatic || prop.CanWrite && prop.SetMethod.IsStatic);
+				if (isStatic)
+					sw.Write (" static ");
+
 				WriteType (prop.PropertyType, sw, true);
 				sw.Write (" {0} {{", prop.Name);
-				if (prop.CanRead) sw.Write ("get;");
-				if (prop.CanWrite) sw.Write ("set;");
+				if (isStatic) {
+					sw.Write ("get;");
+					if (prop.CanWrite)
+						sw.Write ("set;");
+					else sw.Write ("private set;");
+				} else {
+					if (prop.CanRead) sw.Write ("get;");
+					if (prop.CanWrite)
+						sw.Write ("set;");
+					else sw.Write ("private set;");
+				}
 				sw.WriteLine ("}");
 				sw.WriteLine ();
 			}
