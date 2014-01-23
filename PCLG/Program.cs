@@ -485,6 +485,51 @@ namespace PCLG
 				sw.WriteLine ();
 			}
 		}
+
+        public void Unify()
+        {
+            var CleanEnumerations = new Dictionary<string, EnumDefinition>();
+            var CleanInterfaces = new List<StructClassDefinition>();
+            var CleanStructures = new List<StructClassDefinition>();
+            var CleanClasses = new List<StructClassDefinition>();
+
+            foreach (var Enumeration in this.Enumerations)
+            {
+                if (!CleanEnumerations.ContainsKey(Enumeration.Key))
+                {
+                    CleanEnumerations.Add(Enumeration.Key, Enumeration.Value);
+                }
+            }
+            this.Enumerations = CleanEnumerations;
+
+            foreach (var Interface in this.Interfaces)
+            {
+                if (!CleanInterfaces.Exists(I => I.Name == Interface.Name))
+                {
+                    CleanInterfaces.Add(Interface);
+                }
+            }
+            this.Interfaces = CleanInterfaces;
+
+            foreach (var Structure in this.Structures)
+            {
+                if (!CleanStructures.Exists(S => S.Name == Structure.Name))
+                {
+                    CleanStructures.Add(Structure);
+                }
+            }
+            this.Structures = CleanStructures;
+
+            foreach (var Class in this.Classes)
+            {
+                if (!CleanClasses.Exists(C => C.Name == Class.Name))
+                {
+                    CleanClasses.Add(Class);
+                }
+            }
+            this.Classes = CleanClasses;
+        }
+
 	}
 
 	class Program
@@ -493,29 +538,33 @@ namespace PCLG
 		{
 			var asmdef = new AssemblyDefinition ();
 
-			Assembly asm = Assembly.LoadFrom (args[0]);
-			List<string> ignoreNames = new List<string> ();
-			ignoreNames.Add ("MetroGameWindow");
-			ignoreNames.Add ("ViewStateChangedEventArgs");
-			ignoreNames.Add ("MetroHelper");
-			ignoreNames.Add ("XamlGame`1");
-			ignoreNames.Add ("ContentExtensions");
-			ignoreNames.Add ("GameFrameworkViewSource`1");
+            for (int i = 0; i < args.Length; i++)
+            {
+                Assembly asm = Assembly.LoadFrom(args[i]);
+                List<string> ignoreNames = new List<string>();
+                ignoreNames.Add("MetroGameWindow");
+                ignoreNames.Add("ViewStateChangedEventArgs");
+                ignoreNames.Add("MetroHelper");
+                ignoreNames.Add("XamlGame`1");
+                ignoreNames.Add("ContentExtensions");
+                ignoreNames.Add("GameFrameworkViewSource`1");
 
-			List<string> ignoreProperties = new List<string> ();
-			ignoreProperties.Add ("SwapChainPanel");
-			ignoreProperties.Add ("Speakers");
-			ignoreProperties.Add ("PreviousExecutionState");
+                List<string> ignoreProperties = new List<string>();
+                ignoreProperties.Add("SwapChainPanel");
+                ignoreProperties.Add("Speakers");
+                ignoreProperties.Add("PreviousExecutionState");
 
-			List<string> ignoreMethods = new List<string> ();
-			ignoreMethods.Add ("CreateTex2DFromBitmap");
-			ignoreMethods.Add ("GetRenderTargetView");
-			ignoreMethods.Add ("GetDepthStencilView");
-			ignoreMethods.Add ("EndShowStorageDeviceSelector");
-			ignoreMethods.Add ("BeginShowStorageDeviceSelector");
+                List<string> ignoreMethods = new List<string>();
+                ignoreMethods.Add("CreateTex2DFromBitmap");
+                ignoreMethods.Add("GetRenderTargetView");
+                ignoreMethods.Add("GetDepthStencilView");
+                ignoreMethods.Add("EndShowStorageDeviceSelector");
+                ignoreMethods.Add("BeginShowStorageDeviceSelector");
 
-			asmdef.Process (asm, ignoreNames.ToArray(), ignoreProperties.ToArray(), ignoreMethods.ToArray());
-			asmdef.Export (@"C:\Users\Dean\Documents\Projects\dellis1972\pcl-gen\PCLTest\code.cs");
+                asmdef.Process(asm, ignoreNames.ToArray(), ignoreProperties.ToArray(), ignoreMethods.ToArray());
+            }
+            asmdef.Unify();
+            asmdef.Export(@"C:\Development\GitHub\pcl-gen\PCLTest\code.cs");
 
 			/*
 			foreach (var type in types.Where (x => x.IsClass && x.Namespace == "Microsoft.Xna.Framework")) {
