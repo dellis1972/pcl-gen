@@ -185,16 +185,19 @@ namespace PCLG
 			sw.WriteLine ("using System;");
 			sw.WriteLine ("using System.IO;");
 			sw.WriteLine ("using System.Text;");
-			sw.WriteLine ("using System.Globalization;");
+			//sw.WriteLine ("using System.Globalization;");
 			sw.WriteLine ("using System.Collections;");
 			sw.WriteLine ("using System.Collections.Generic;");
 			sw.WriteLine ("using System.Collections.ObjectModel;");
-			sw.WriteLine ("using Microsoft.Xna.Framework;");
+            sw.WriteLine ("using System.Resources;");
+            sw.WriteLine ("using System.ComponentModel;");
+            sw.WriteLine ("using Microsoft.Xna.Framework;");
 			sw.WriteLine ("using Microsoft.Xna.Framework.Input;");
 			sw.WriteLine ("using Microsoft.Xna.Framework.Content;");
 			sw.WriteLine ("using Microsoft.Xna.Framework.Graphics;");
+			sw.WriteLine ("using Microsoft.Xna.Framework.GamerServices;");
 			//sw.WriteLine ("using Microsoft.Xna.Framework.Storage;");
-			foreach(var e in this.Enumerations.Values) {
+            foreach(var e in this.Enumerations.Values) {
 				sw.WriteLine ("namespace {0} {{", e.Namespace);
 				sw.WriteLine ("	public enum {0} {{", e.Name);
 				var enumnames = e.Enums;
@@ -314,8 +317,9 @@ namespace PCLG
 						sw.Write ("ref ");
 					WriteType (param.ParameterType, sw, true);
 
-					sw.Write (" {0} ", param.Name);
-					if (param.HasDefaultValue) {
+                    sw.Write(" {0} ", param.Name == "object" ? "obj" : param.Name);
+                    if (param.HasDefaultValue)
+                    {
 						sw.Write (" = {0}", param.DefaultValue == null ? "null" : param.DefaultValue.ToString ());
 					}
 					if (param != parameters.Last ())
@@ -433,8 +437,8 @@ namespace PCLG
 					} else if (param.ParameterType.IsByRef)
 						sw.Write ("ref ");
 					WriteType (param.ParameterType, sw, true);
-					
-					sw.Write (" {0} ", param.Name);
+                    
+					sw.Write (" {0} ", param.Name == "object" ? "obj" : param.Name);
 					if (param.HasDefaultValue) {
 						if (!param.ParameterType.FullName.StartsWith("System."))
 							sw.Write (" = {0}", param.DefaultValue == null ? "null" : string.Format("{0}.{1}", param.ParameterType.Name,param.DefaultValue.ToString ()));
